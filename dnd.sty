@@ -1,0 +1,179 @@
+% DND 5e LaTeX Style File
+% Created by Evan Bergeron
+% Modified by Christopher Liu December 2015
+% Modified by Yannic Meyer Feb 2016
+
+\ProvidesPackage{dnd}[2017/10/13 v0.6.0 Template for D&D 5e material]
+
+%
+% Prerequisite Packages
+%
+% Set a different geometry with \newgeometry
+\usepackage[
+  bindingoffset=15pt, % .2in
+  hmargin=50pt,       % .7in
+  top=40pt,           % .55in
+  bottom=50pt,        % .7in
+  footskip=30pt,      % makes the footer text line up with the graphic
+]{geometry}
+
+% Loaded before tikz to avoid package option conflict with pgf.
+\RequirePackage[table]{xcolor}
+
+\RequirePackage{array}
+\RequirePackage{calc}
+\RequirePackage{enumitem}
+\RequirePackage{ifluatex}
+\RequirePackage{keycommand}
+\RequirePackage{microtype}        % Improve ragged2e hyphenation and overfull boxes
+\RequirePackage{ragged2e}
+\RequirePackage{tabularx}
+\RequirePackage[most]{tcolorbox}  % used for some boxes
+\RequirePackage{tikz}
+\RequirePackage{xkeyval}
+\RequirePackage{xparse}
+
+\ifluatex
+  \RequirePackage{luacolor}
+\fi
+
+
+% \dnd@deprecate{<command or environment>}{<version>}[<suggestion>]
+\DeclareDocumentCommand{\dnd@deprecate}{m m o}{%
+  \PackageWarning{dnd}{#1 is deprecated and will be removed in version #2.\IfNoValueF{#3}{ #3}}
+}
+
+%
+% Options
+%
+
+\newtoggle{bool-bg}
+\newtoggle{bool-footer-scroll}
+\DeclareOptionX{bg}[full]{%
+  % This macro call looks complicated, but simply sets up a case environment
+  % to process choices. Refer to the xkeyval documentation for details.
+  \XKV@cc*+[\val\index]{#1}{full,none,print}{%
+    \ifcase\index\relax
+    % full
+    \toggletrue{bool-bg}
+    \toggletrue{bool-footer-scroll}
+    \or
+    % none
+    \togglefalse{bool-bg}
+    \togglefalse{bool-footer-scroll}
+    \or
+    % print
+    \togglefalse{bool-bg}
+    \toggletrue{bool-footer-scroll}
+    \fi
+  }{%
+    \PackageWarning{dnd}{\val\ is not a valid choice for bg and was ignored}
+  }
+}
+
+% Legacy bg option variants.
+\DeclareOptionX{bg-full}{%
+  \dnd@deprecate{bg-full}{0.8}[Use bg=full instead.]
+  \toggletrue{bool-bg}
+  \toggletrue{bool-footer-scroll}
+}
+\DeclareOptionX{bg-none}{%
+  \dnd@deprecate{bg-none}{0.8}[Use bg=none instead.]
+  \togglefalse{bool-bg}
+  \togglefalse{bool-footer-scroll}
+}
+\DeclareOptionX{bg-print}{%
+  \dnd@deprecate{bg-print}{0.8}[Use bg=print instead.]
+  \togglefalse{bool-bg}
+  \toggletrue{bool-footer-scroll}
+}
+\DeclareOptionX{bg-a4}{\dnd@deprecate{bg-a4}{0.7}[Remove call to this package option.]}
+\DeclareOptionX{bg-letter}{\dnd@deprecate{bg-letter}{0.7}[Remove call to this package option.]}
+
+% Toggle justification (official books are flush left).
+\newtoggle{justified}
+\DeclareOptionX{justified}{\toggletrue{justified}}
+
+% Toggle multitoc.
+\newtoggle{multitoc}
+\settoggle{multitoc}{true}
+\DeclareOptionX{nomultitoc}{\togglefalse{multitoc}}
+
+% Default Settings
+\ExecuteOptionsX{bg=full}
+\ProcessOptionsX\relax
+
+% Load other modules of this package
+\RequirePackage{lib/dndcolors}    % color definitions
+\RequirePackage{lib/dndfonts}     % font definitions
+\RequirePackage{lib/dndcomment}   % \commentbox definition
+\RequirePackage{lib/dndheader}    % fancy headers and footers
+\RequirePackage{lib/dndmonster}   % \monsterbox definition
+\RequirePackage{lib/dndpaperbox}  % \paperbox definition
+\RequirePackage{lib/dndquote}     % \quotebox definition
+\RequirePackage{lib/dndsections}  % section styling
+\RequirePackage{lib/dndspell}     % \spell definition
+\RequirePackage{lib/dndstrings}   % Load document strings
+\RequirePackage{lib/dndtable}     % \dndtable definition
+
+
+% Set paragraph and line spacing
+\linespread{1.1}%
+\setlength{\parindent}{1em}
+\setlength{\RaggedRightRightskip}{0pt plus 1cm}
+\setlength{\RaggedRightParindent}{\parindent}
+\hyphenpenalty=1000  % Fewer hyphens
+
+% Set left justification if not justified
+\nottoggle{justified}{\RaggedRight}
+
+%
+% Style Parameters
+%
+
+% Disable space between paragraphs.
+\setlength{\parskip}{0pt}
+
+% Font environment
+\newenvironment{lmss}{%
+  \dnd@deprecate{lmss}{0.7}
+  \fontfamily{lmss}\selectfont
+  }{}
+
+% Columns setup
+\setlength{\columnsep}{25pt}  % .35in
+
+% Customize itemize environment.
+\setlist{leftmargin=1em}
+\setitemize{noitemsep,topsep=0.5ex}
+\renewcommand{\labelitemi}{\raisebox{0.25ex}{\tiny{\( \bullet \)}}}
+
+% Fancy DnD 5e stat block rule
+\newcommand{\dndline}{%
+  \noindent
+  \begin{tikzpicture}[]
+    \draw [rulered, fill=rulered] (0, 0) --(0,0.1) -- (\textwidth, 0.05);
+  \end{tikzpicture}%
+  \par%
+}
+\renewcommand{\hline}{%
+  \dnd@deprecate{redefined \noexpand\hline}{0.8}[Use \noexpand\dndline for stat block rules.]%
+  \dndline%
+}
+
+
+% Either hilariously, or infuriatingly, the \ifcommandkey
+% implementation is buggy. Here is a re-implementation
+% from tex.stackexchange.
+\begingroup
+  \makeatletter
+  \catcode`\/=8 %
+  \@firstofone
+    {
+      \endgroup
+      \renewcommand{\ifcommandkey}[1]{%
+        \csname @\expandafter \expandafter \expandafter
+        \expandafter \expandafter \expandafter  \expandafter
+        \kcmd@nbk \commandkey {#1}//{first}{second}//oftwo\endcsname
+      }
+   }
